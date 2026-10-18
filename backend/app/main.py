@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import decision, stocks
+from app.api import decisions, stocks
 from app.models.database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -19,7 +19,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(stocks.router, prefix="/api/v1/stocks", tags=["stocks"])
-app.include_router(decision.router, prefix="/api/v1/decision", tags=["decision"])
+app.include_router(decisions.router, prefix="/api/v1/decisions", tags=["decisions"])
 
 @app.get("/")
 def root():

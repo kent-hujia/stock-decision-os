@@ -59,3 +59,10 @@ export function ErrorBox({ message }: { message: string }) {
 export function SourceNote({ children }: { children: ReactNode }) {
   return <p className="text-xs text-slate-400">{children}</p>;
 }
+
+export function Badge({ children, cls = 'text-slate-600 bg-slate-50 border-slate-200' }: {
+  children: ReactNode;
+  cls?: string;
+}) {
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${cls}`}>{children}</span>;
+}

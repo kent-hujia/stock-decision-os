@@ -24,3 +24,12 @@ export function upDownClass(v: number | null | undefined): string {
   if (v === null || v === undefined || v === 0) return 'text-slate-600';
   return v > 0 ? 'text-red-600' : 'text-green-700';
 }
+
+/** ISO timestamp shown in Taiwan time, e.g. 2026/10/18 23:00. */
+export function dateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('zh-TW', {
+    timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}

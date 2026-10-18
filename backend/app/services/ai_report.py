@@ -8,18 +8,14 @@ import threading
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-import anthropic
 from pydantic import BaseModel
 
-from app.core.config import settings
 from app.models.database import SessionLocal
 from app.models.schemas import AiReport
+from app.services import claude
 from app.services.xray import build_xray
 
 TAIPEI = timezone(timedelta(hours=8))
-STALE_AFTER = timedelta(minutes=10)
-
-client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 class XrayReading(BaseModel):
@@ -49,7 +45,7 @@ def _yi(v: Optional[float]) -> Optional[float]:
     return None if v is None else round(v / 1e8, 1)
 
 
-def _prompt_data(xray: dict) -> str:
+def prompt_data(xray: dict) -> str:
     quarters = [{
         "quarter": q["quarter"],
         "revenue": _yi(q["revenue"]),
@@ -77,32 +73,11 @@ def _generate(report_id: int, ticker: str, name: str) -> None:
     db = SessionLocal()
     report = db.get(AiReport, report_id)
     try:
-        if not settings.ANTHROPIC_API_KEY:
-            report.status, report.error = "error", "後端沒有設定 ANTHROPIC_API_KEY。"
-            return
+        claude.require_key()
         xray = build_xray(ticker)
-        response = client.messages.parse(
-            model=settings.CLAUDE_MODEL,
-            max_tokens=16000,
-            output_config={"effort": "medium"},
-            messages=[{"role": "user", "content": PROMPT.format(
-                ticker=ticker, name=name, data=_prompt_data(xray))}],
-            output_format=XrayReading,
-            # Retry on another model automatically if a safety classifier declines.
-            extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
-            extra_body={"fallbacks": "default"},
-        )
-        if response.stop_reason == "refusal" or response.parsed_output is None:
-            raise RuntimeError(f"Claude 沒有產生內容（stop_reason={response.stop_reason}）")
-        report.content = {**response.parsed_output.model_dump(),
-                          "score": xray["score"], "data_as_of": xray["data_as_of"]}
+        reading = claude.parse(PROMPT.format(ticker=ticker, name=name, data=prompt_data(xray)), XrayReading)
+        report.content = {**reading.model_dump(), "score": xray["score"], "data_as_of": xray["data_as_of"]}
         report.status = "done"
-    except anthropic.AuthenticationError:
-        report.status, report.error = "error", "ANTHROPIC_API_KEY 無效或沒有設定。"
-    except anthropic.RateLimitError:
-        report.status, report.error = "error", "Claude API 請求過於頻繁，請稍後再試。"
-    except anthropic.APIStatusError as e:
-        report.status, report.error = "error", f"Claude API 錯誤（{e.status_code}）：{e.message}"
     except Exception as e:
         report.status, report.error = "error", str(e)[:500]
     finally:
@@ -122,10 +97,7 @@ def start_report(db, ticker: str, name: str) -> AiReport:
     if existing and existing.status == "done":
         return existing
     if existing and existing.status == "pending":
-        started = existing.created_at
-        if started and started.tzinfo is None:
-            started = started.replace(tzinfo=timezone.utc)
-        if started is None or datetime.now(timezone.utc) - started < STALE_AFTER:
+        if not claude.is_stale(existing.created_at):
             return existing
         existing.status, existing.error = "error", "上一次產生逾時，已重新開始。"
     report = AiReport(ticker=ticker, report_date=today_tw(), status="pending")
