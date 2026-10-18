@@ -8,7 +8,7 @@ import uuid
 router = APIRouter()
 
 @router.post("/{ticker}/analyze")
-async def trigger_revenue_analysis(ticker: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def trigger_revenue_analysis(ticker: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Trigger an asynchronous AI revenue analysis.
     """
@@ -18,7 +18,7 @@ async def trigger_revenue_analysis(ticker: str, background_tasks: BackgroundTask
     return {"message": f"Analysis for {ticker} started in background. Please check back in a few moments."}
 
 @router.get("/{ticker}")
-async def get_revenue_analysis(ticker: str, db: Session = Depends(get_db)):
+def get_revenue_analysis(ticker: str, db: Session = Depends(get_db)):
     """
     Fetch the latest revenue X-ray snapshot.
     """
@@ -27,7 +27,7 @@ async def get_revenue_analysis(ticker: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No analysis found for this ticker. Please trigger analysis first.")
     return snapshot
 
-async def perform_analysis(ticker: str, db: Session):
+def perform_analysis(ticker: str, db: Session):
     """
     The actual background worker logic.
     """

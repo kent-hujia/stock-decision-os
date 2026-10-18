@@ -5,7 +5,7 @@ from typing import Dict, Any
 router = APIRouter()
 
 @router.get("/{ticker}")
-async def get_sentiment(ticker: str):
+def get_sentiment(ticker: str):
     """
     Fetch sentiment analysis, Z-Score, and conviction divergence for a specific ticker.
     """

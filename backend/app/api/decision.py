@@ -26,12 +26,12 @@ class RebuttalCreate(BaseModel):
     rebuttal: str
 
 @router.post("/start")
-async def start_decision(payload: DecisionCreate, db: Session = Depends(get_db)):
+def start_decision(payload: DecisionCreate, db: Session = Depends(get_db)):
     service = DecisionService(db)
     return service.create_decision(payload.user_id, payload.ticker)
 
 @router.get("/{decision_id}")
-async def get_decision(decision_id: str, db: Session = Depends(get_db)):
+def get_decision(decision_id: str, db: Session = Depends(get_db)):
     service = DecisionService(db)
     decision = service.get_decision(decision_id)
     if not decision:
@@ -39,12 +39,12 @@ async def get_decision(decision_id: str, db: Session = Depends(get_db)):
     return decision
 
 @router.post("/{decision_id}/step")
-async def add_step(decision_id: str, payload: StepCreate, db: Session = Depends(get_db)):
+def add_step(decision_id: str, payload: StepCreate, db: Session = Depends(get_db)):
     service = DecisionService(db)
     return service.add_step(decision_id, payload.step_type, payload.content)
 
 @router.patch("/{decision_id}/status")
-async def update_status(decision_id: str, payload: StatusUpdate, db: Session = Depends(get_db)):
+def update_status(decision_id: str, payload: StatusUpdate, db: Session = Depends(get_db)):
     service = DecisionService(db)
     decision = service.update_decision_status(decision_id, payload.status, payload.conviction)
     if not decision:
@@ -52,12 +52,12 @@ async def update_status(decision_id: str, payload: StatusUpdate, db: Session = D
     return decision
 
 @router.get("/{decision_id}/history")
-async def get_history(decision_id: str, db: Session = Depends(get_db)):
+def get_history(decision_id: str, db: Session = Depends(get_db)):
     service = DecisionService(db)
     return service.get_decision_history(decision_id)
 
 @router.post("/{decision_id}/adversarial/questions")
-async def generate_skeptic_questions(decision_id: str, hypothesis: str, db: Session = Depends(get_db)):
+def generate_skeptic_questions(decision_id: str, hypothesis: str, db: Session = Depends(get_db)):
     """
     Triggers AI to generate adversarial questions based on the hypothesis.
     """
@@ -72,7 +72,7 @@ async def generate_skeptic_questions(decision_id: str, hypothesis: str, db: Sess
     return questions
 
 @router.post("/{decision_id}/adversarial/rebuttal")
-async def submit_rebuttal(decision_id: str, payload: RebuttalCreate, db: Session = Depends(get_db)):
+def submit_rebuttal(decision_id: str, payload: RebuttalCreate, db: Session = Depends(get_db)):
     """
     Evaluate the user's rebuttal to a specific adversarial question.
     """
