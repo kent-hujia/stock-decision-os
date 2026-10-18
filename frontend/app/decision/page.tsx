@@ -16,7 +16,7 @@ export default function DecisionPage() {
   const startDecision = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/decision/start', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/decision/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 'user-123', ticker }),
@@ -34,7 +34,7 @@ export default function DecisionPage() {
   const generateQuestions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/decision/some-id/adversarial/questions`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/decision/some-id/adversarial/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hypothesis }),

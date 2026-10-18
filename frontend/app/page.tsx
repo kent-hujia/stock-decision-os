@@ -13,7 +13,7 @@ export default function Home() {
     setLoading(true);
     try {
       // Note: Replace with actual Railway URL in production
-      const res = await fetch(`http://localhost:8000/api/v1/sentiment/${ticker}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/sentiment/${ticker}`);
       const data = await res.json();
       setSentimentData(data);
     } catch (e) {

@@ -13,12 +13,12 @@ export default function RevenueXRayPage() {
     setLoading(true);
     try {
       // 1. Trigger Analysis
-      await fetch(`http://localhost:8000/api/v1/revenue/${ticker}/analyze`, { method: 'POST' });
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/revenue/${ticker}/analyze`, { method: 'POST' });
 
       // 2. Poll for result (Simple polling for MVP)
       let result = null;
       while (!result) {
-        const res = await fetch(`http://localhost:8000/api/v1/revenue/${ticker}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/revenue/${ticker}`);
         if (res.ok) {
           result = await res.json();
         } else {
