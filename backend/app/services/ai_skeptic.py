@@ -1,3 +1,4 @@
+from app.services.llm_json import parse_llm_json
 import json
 import anthropic
 from app.core.config import settings
@@ -39,7 +40,7 @@ class AISkepticService:
                 max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(next(b.text for b in message.content if b.type == "text"))
+            return parse_llm_json(message)
         except Exception as e:
             print(f"AI Skeptic Error: {e}")
             # Fallback mock response
@@ -78,7 +79,7 @@ class AISkepticService:
                 max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(next(b.text for b in message.content if b.type == "text"))
+            return parse_llm_json(message)
         except Exception as e:
             print(f"AI Evaluation Error: {e}")
             return {"status": "Fail", "reason": "Evaluation failed due to system error."}

@@ -1,3 +1,4 @@
+from app.services.llm_json import parse_llm_json
 from app.services.ai_skeptic import ai_skeptic_service
 from sqlalchemy.orm import Session
 from app.models.schemas import Thesis
@@ -36,7 +37,7 @@ class ThesisService:
                 messages=[{"role": "user", "content": prompt}]
             )
             import json
-            theses_data = json.loads(next(b.text for b in message.content if b.type == "text"))
+            theses_data = parse_llm_json(message)
 
             created_theses = []
             for data in theses_data:

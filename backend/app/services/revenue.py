@@ -1,3 +1,4 @@
+from app.services.llm_json import parse_llm_json
 import json
 import anthropic
 from typing import Dict, Any, List
@@ -66,7 +67,7 @@ class RevenueAnalysisService:
                 max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(next(b.text for b in message.content if b.type == "text"))
+            return parse_llm_json(message)
         except Exception as e:
             print(f"Decomposition Error: {e}")
             return [{"type": "unknown", "amount": "Error", "evidence": "Failed to analyze"}]
