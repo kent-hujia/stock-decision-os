@@ -10,15 +10,6 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class SentimentLog(Base):
-    __tablename__ = "sentiment_logs"
-    id = Column(Integer, primary_key=True, index=True)
-    ticker = Column(String, index=True, nullable=False)
-    retail_score = Column(Float)
-    inst_score = Column(Float)
-    z_score = Column(Float)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
-
 class Decision(Base):
     __tablename__ = "decisions"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -47,10 +38,14 @@ class Thesis(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class RevenueSnapshot(Base):
-    __tablename__ = "revenue_snapshots"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+class AiReport(Base):
+    """One Claude-written revenue X-ray reading per stock per day (cached to limit API cost)."""
+    __tablename__ = "ai_reports"
+    id = Column(Integer, primary_key=True, index=True)
     ticker = Column(String, index=True, nullable=False)
-    story_line = Column(JSON)
-    quality_score = Column(Float)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    report_date = Column(String, index=True, nullable=False)  # Taiwan date, YYYY-MM-DD
+    status = Column(String, nullable=False, default="pending")  # pending, done, error
+    content = Column(JSON)
+    error = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

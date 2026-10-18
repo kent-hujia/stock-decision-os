@@ -1,7 +1,12 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Suspense } from 'react'
+import type { Metadata } from 'next'
+import Nav from '@/components/Nav'
 
-const inter = Inter({ subsets: ['latin'] })
+export const metadata: Metadata = {
+  title: 'Stock Decision OS',
+  description: '台股個股總覽與營收品質分析，資料來自 FinMind 公開資料。',
+}
 
 export default function RootLayout({
   children,
@@ -10,18 +15,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-TW">
-      <body className={`${inter.className} bg-slate-50 text-slate-900`}>
-        <nav className="border-b bg-white px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-indigo-600">Stock Decision OS</h1>
-          <div className="space-x-4 text-sm font-medium">
-            <a href="/" className="hover:text-indigo-600">儀表板</a>
-            <a href="/decision" className="hover:text-indigo-600">新決策</a>
-            <a href="/analysis" className="hover:text-indigo-600">營收分析</a>
+      <body className="bg-slate-50 text-slate-900 antialiased">
+        <nav className="border-b bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-2 justify-between items-center">
+            <a href="/" className="text-lg font-bold text-indigo-600">Stock Decision OS</a>
+            <Suspense>
+              <Nav />
+            </Suspense>
           </div>
         </nav>
-        <main className="p-6 max-w-7xl mx-auto">
+        <main className="px-4 sm:px-6 py-6 max-w-6xl mx-auto">
           {children}
         </main>
+        <footer className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 text-xs text-slate-400">
+          資料來源：FinMind（台灣證券交易所、櫃買中心、公開資訊觀測站公開資料）。本網站內容僅供研究參考，不構成投資建議。
+        </footer>
       </body>
     </html>
   )

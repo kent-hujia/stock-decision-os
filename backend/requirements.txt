@@ -1,14 +1,10 @@
 fastapi
 uvicorn[standard]
-sqlalchemy
+sqlalchemy>=2.0
 psycopg2-binary
-pydantic
+psycopg[binary]
+pydantic>=2
 pydantic-settings
 python-dotenv
 requests
-celery
-redis
-numpy
 anthropic
-beautifulsoup4
-psycopg[binary]

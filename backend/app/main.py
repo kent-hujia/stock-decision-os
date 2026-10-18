@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import sentiment, decision, revenue
+from app.api import decision, stocks
 from app.models.database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -18,17 +18,16 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(sentiment.router, prefix="/api/v1/sentiment", tags=["sentiment"])
+app.include_router(stocks.router, prefix="/api/v1/stocks", tags=["stocks"])
 app.include_router(decision.router, prefix="/api/v1/decision", tags=["decision"])
-app.include_router(revenue.router, prefix="/api/v1/revenue", tags=["revenue"])
 
 @app.get("/")
-async def root():
+def root():
     return {"message": "Welcome to the Stock Decision OS API"}
 
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy", "version": "0.1.0"}
+def health_check():
+    return {"status": "healthy", "version": "0.2.0"}
 
 if __name__ == "__main__":
     import uvicorn
