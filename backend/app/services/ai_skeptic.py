@@ -35,12 +35,11 @@ class AISkepticService:
 
         try:
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=1000,
-                temperature=0.7,
+                model="claude-opus-5-5",
+                max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(message.content[0].text)
+            return json.loads(next(b.text for b in message.content if b.type == "text"))
         except Exception as e:
             print(f"AI Skeptic Error: {e}")
             # Fallback mock response
@@ -75,12 +74,11 @@ class AISkepticService:
         """
         try:
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=500,
-                temperature=0.3,
+                model="claude-opus-5-5",
+                max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(message.content[0].text)
+            return json.loads(next(b.text for b in message.content if b.type == "text"))
         except Exception as e:
             print(f"AI Evaluation Error: {e}")
             return {"status": "Fail", "reason": "Evaluation failed due to system error."}

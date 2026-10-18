@@ -62,12 +62,11 @@ class RevenueAnalysisService:
         """
         try:
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=1000,
-                temperature=0.3,
+                model="claude-opus-5-5",
+                max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return json.loads(message.content[0].text)
+            return json.loads(next(b.text for b in message.content if b.type == "text"))
         except Exception as e:
             print(f"Decomposition Error: {e}")
             return [{"type": "unknown", "amount": "Error", "evidence": "Failed to analyze"}]
