@@ -11,3 +11,4 @@ redis
 numpy
 anthropic
 beautifulsoup4
+psycopg[binary]
