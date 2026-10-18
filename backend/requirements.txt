@@ -8,3 +8,6 @@ python-dotenv
 requests
 celery
 redis
+numpy
+anthropic
+beautifulsoup4
