@@ -7,16 +7,29 @@ import { Card, ErrorBox } from '@/components/ui';
 
 const POLL_MS = 4000;
 
-export default function AiReading({ ticker }: { ticker: string }) {
+export interface ReadingSection {
+  key: string;
+  title: string;
+  empty?: string;
+}
+
+/** A cached daily Claude reading: a headline plus titled bullet lists, generated on request. */
+export default function AiReading({ endpoint, title = 'AI 解讀', subtitle, sections, pendingText }: {
+  endpoint: string;
+  title?: string;
+  subtitle: string;
+  sections: ReadingSection[];
+  pendingText?: string;
+}) {
   const [report, setReport] = useState<AiReport | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback((method: 'GET' | 'POST') => {
     setError('');
-    return api<AiReport>(`/stocks/${ticker}/ai-report`, { method })
+    return api<AiReport>(endpoint, { method })
       .then(setReport)
       .catch((e) => setError(e instanceof ApiError ? e.message : '讀取失敗'));
-  }, [ticker]);
+  }, [endpoint]);
 
   useEffect(() => {
     setReport(null);
@@ -34,8 +47,8 @@ export default function AiReading({ ticker }: { ticker: string }) {
 
   return (
     <Card
-      title="AI 解讀"
-      subtitle="Claude 只根據本頁的數字撰寫，不引用外部新聞；每檔股票每天產生一次"
+      title={title}
+      subtitle={subtitle}
       action={(status === 'none' || status === 'error') && (
         <button onClick={() => load('POST')}
           className="inline-flex items-center gap-1.5 text-sm bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700">
@@ -50,16 +63,16 @@ export default function AiReading({ ticker }: { ticker: string }) {
       {status === 'pending' && (
         <p className="flex items-center gap-2 text-sm text-slate-600">
           <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-          Claude 正在閱讀財報數字，大約需要 1 分鐘，完成後會自動顯示…
+          {pendingText ?? 'Claude 正在閱讀數字，大約需要 1 分鐘，完成後會自動顯示…'}
         </p>
       )}
       {status === 'error' && <ErrorBox message={`產生失敗：${report?.error ?? '未知錯誤'}`} />}
       {status === 'done' && content && (
         <div className="space-y-4">
           <p className="text-base font-medium text-slate-900">{content.headline}</p>
-          <ReadingList title="成長來源" items={content.growth_sources} />
-          <ReadingList title="風險與疑點" items={content.risks} empty="沒有發現明顯疑點。" />
-          <ReadingList title="接下來要追蹤" items={content.watch_items} />
+          {sections.map((sec) => (
+            <ReadingList key={sec.key} title={sec.title} items={(content as Record<string, any>)[sec.key] ?? []} empty={sec.empty} />
+          ))}
           <p className="text-xs text-slate-400">產生日期 {report?.report_date}・不構成投資建議</p>
         </div>
       )}

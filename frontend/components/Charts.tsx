@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine,
+  Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, LineChart, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import type { FlowPoint, MonthRevenue, PricePoint } from '@/lib/api';
+import type { FlowPoint, MonthRevenue, PricePoint, SwingPricePoint } from '@/lib/api';
 import { lots, pct, yi } from '@/lib/format';
 
 // Categorical slots 1-3 of the validated reference palette (safe for color-blind readers).
@@ -136,6 +136,86 @@ export function YoyChart({ data }: { data: MonthRevenue[] }) {
           {data.map((d) => <Cell key={d.period} fill={(d.yoy ?? 0) >= 0 ? UP : DOWN} />)}
         </Bar>
       </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+const fmtPrice = (v: number | null | undefined) => (v === null || v === undefined ? '—' : v.toLocaleString('zh-TW'));
+
+/** Close with 20/60-day moving averages, volume underneath, and optional stop / target / entry lines. */
+export function SwingPriceChart({ data, stop, target, entry }: {
+  data: SwingPricePoint[];
+  stop?: number | null;
+  target?: number | null;
+  entry?: number | null;
+}) {
+  const lines: [number | null | undefined, string, string][] = [
+    [target, '目標', UP], [entry, '進場', '#64748b'], [stop, '停損', DOWN],
+  ];
+  const levels = lines.map(([v]) => v).filter((v): v is number => typeof v === 'number');
+  const lows = data.map((p) => p.low).concat(levels);
+  const highs = data.map((p) => p.high).concat(levels);
+  const pad = (Math.max(...highs) - Math.min(...lows)) * 0.05;
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <ComposedChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={40}
+          tickFormatter={(d: string) => d.slice(5)} />
+        <YAxis yAxisId="price" tick={AXIS} tickLine={false} axisLine={false} width={56}
+          domain={[Math.min(...lows) - pad, Math.max(...highs) + pad]}
+          tickFormatter={(v: number) => Math.round(v).toLocaleString('zh-TW')} />
+        <YAxis yAxisId="vol" orientation="right" hide domain={[0, (max: number) => max * 4]} />
+        <Tooltip
+          cursor={{ stroke: '#94a3b8', strokeDasharray: '3 3' }}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const p = payload[0].payload as SwingPricePoint;
+            return <TooltipBox title={p.date} rows={[
+              ['收盤', fmtPrice(p.close), SERIES.blue],
+              ['20 日均線', fmtPrice(p.ma20), SERIES.orange],
+              ['60 日均線', fmtPrice(p.ma60), SERIES.aqua],
+              ['最高 / 最低', `${fmtPrice(p.high)} / ${fmtPrice(p.low)}`],
+              ['成交量', `${p.volume_lots.toLocaleString('zh-TW')} 張`],
+            ]} />;
+          }}
+        />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar yAxisId="vol" dataKey="volume_lots" name="成交量" fill="#cbd5e1" isAnimationActive={false} />
+        <Line yAxisId="price" type="linear" dataKey="close" name="收盤" stroke={SERIES.blue} strokeWidth={2} dot={false} isAnimationActive={false} />
+        <Line yAxisId="price" type="linear" dataKey="ma20" name="20 日均線" stroke={SERIES.orange} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        <Line yAxisId="price" type="linear" dataKey="ma60" name="60 日均線" stroke={SERIES.aqua} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        {lines.map(([v, label, color]) => typeof v === 'number' && (
+          <ReferenceLine key={label} yAxisId="price" y={v} stroke={color} strokeDasharray="4 4"
+            label={{ value: `${label} ${fmtPrice(v)}`, position: 'insideTopLeft', fontSize: 11, fill: color }} />
+        ))}
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function EquityChart({ data, initial }: { data: { date: string; equity: number }[]; initial: number }) {
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="date" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={40}
+          tickFormatter={(d: string) => d.slice(5)} />
+        <YAxis tick={AXIS} tickLine={false} axisLine={false} width={64} domain={['auto', 'auto']}
+          tickFormatter={(v: number) => `${(v / 10000).toLocaleString('zh-TW', { maximumFractionDigits: 1 })} 萬`} />
+        <ReferenceLine y={initial} stroke="#94a3b8" strokeDasharray="4 4" />
+        <Tooltip
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const p = payload[0].payload as { date: string; equity: number };
+            return <TooltipBox title={`${p.date} 結案後`} rows={[
+              ['已實現資產', `${p.equity.toLocaleString('zh-TW')} 元`, SERIES.blue],
+              ['相對初始', `${((p.equity / initial - 1) * 100).toFixed(2)}%`],
+            ]} />;
+          }}
+        />
+        <Line type="stepAfter" dataKey="equity" stroke={SERIES.blue} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+      </LineChart>
     </ResponsiveContainer>
   );
 }

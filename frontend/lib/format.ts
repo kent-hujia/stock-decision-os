@@ -33,3 +33,21 @@ export function dateTime(iso: string | null | undefined): string {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
+
+/** NT$ amount in 元, signed when asked. */
+export function ntd(v: number | null | undefined, signed = false): string {
+  if (v === null || v === undefined) return '—';
+  return `${signed && v > 0 ? '+' : ''}${Math.round(v).toLocaleString('zh-TW')} 元`;
+}
+
+/** Share count as 張 + 零股 (1 張 = 1,000 股). */
+export function shares(n: number): string {
+  const lotsPart = Math.floor(n / 1000);
+  const odd = n % 1000;
+  if (!lotsPart) return `${odd} 股`;
+  return odd ? `${lotsPart} 張 ${odd} 股` : `${lotsPart} 張`;
+}
+
+export function price(v: number | null | undefined): string {
+  return v === null || v === undefined ? '—' : v.toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+}

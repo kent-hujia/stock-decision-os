@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import decisions, stocks
+from app.api import decisions, notify, paper, stocks
+from app.services.notify import start_scheduler
 from app.models.database import Base, engine
 
 Base.metadata.create_all(bind=engine)
@@ -19,7 +20,14 @@ app.add_middleware(
 
 # Routers
 app.include_router(stocks.router, prefix="/api/v1/stocks", tags=["stocks"])
+app.include_router(notify.router, prefix="/api/v1/notify", tags=["notify"])
+app.include_router(paper.router, prefix="/api/v1/paper", tags=["paper"])
 app.include_router(decisions.router, prefix="/api/v1/decisions", tags=["decisions"])
+
+@app.on_event("startup")
+def _start_jobs():
+    start_scheduler()
+
 
 @app.get("/")
 def root():

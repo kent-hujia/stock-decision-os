@@ -8,3 +8,4 @@ pydantic-settings
 python-dotenv
 requests
 anthropic
+python-multipart

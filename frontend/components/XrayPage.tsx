@@ -3,21 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, CircleSlash, AlertTriangle, XCircle } from 'lucide-react';
-import { api, ApiError, type Check, type CheckStatus, type Quarter, type Xray } from '@/lib/api';
+import { api, ApiError, type Quarter, type Xray } from '@/lib/api';
 import { pct, ratio, upDownClass, yi } from '@/lib/format';
 import { YoyChart } from '@/components/Charts';
 import AiReading from '@/components/AiReading';
+import CheckCard from '@/components/CheckCard';
+import EarningsCalls from '@/components/EarningsCalls';
 import QuickPicks from '@/components/QuickPicks';
 import StockSearch from '@/components/StockSearch';
 import { Card, ErrorBox, Loading, SourceNote } from '@/components/ui';
-
-const STATUS: Record<CheckStatus, { label: string; icon: typeof CheckCircle2; cls: string }> = {
-  good: { label: '健康', icon: CheckCircle2, cls: 'text-green-700 bg-green-50 border-green-200' },
-  warn: { label: '留意', icon: AlertTriangle, cls: 'text-amber-700 bg-amber-50 border-amber-200' },
-  bad: { label: '警訊', icon: XCircle, cls: 'text-red-700 bg-red-50 border-red-200' },
-  na: { label: '不適用', icon: CircleSlash, cls: 'text-slate-500 bg-slate-50 border-slate-200' },
-};
 
 export default function XrayPage() {
   const ticker = useSearchParams().get('ticker')?.toUpperCase() ?? '';
@@ -87,7 +81,17 @@ function XrayBody({ data }: { data: Xray }) {
         {data.checks.map((c) => <CheckCard key={c.id} check={c} />)}
       </div>
 
-      <AiReading ticker={data.stock.stock_id} />
+      <AiReading
+        endpoint={`/stocks/${data.stock.stock_id}/ai-report`}
+        subtitle="Claude 只根據本頁的數字撰寫，不引用外部新聞；每檔股票每天產生一次"
+        sections={[
+          { key: 'growth_sources', title: '成長來源' },
+          { key: 'risks', title: '風險與疑點', empty: '沒有發現明顯疑點。' },
+          { key: 'watch_items', title: '接下來要追蹤' },
+        ]}
+      />
+
+      <EarningsCalls ticker={data.stock.stock_id} />
 
       <Card title="月營收年增率" subtitle="近 24 個月（%）">
         <YoyChart data={data.monthly_revenue} />
@@ -101,24 +105,6 @@ function XrayBody({ data }: { data: Xray }) {
         季報數字為合併報表單季值；營業現金流由累計數換算為單季。公司公告季報後約 1-2 天更新。
       </SourceNote>
     </>
-  );
-}
-
-function CheckCard({ check }: { check: Check }) {
-  const s = STATUS[check.status];
-  const Icon = s.icon;
-  return (
-    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="font-semibold">{check.title}</h4>
-        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${s.cls}`}>
-          <Icon className="w-3.5 h-3.5" aria-hidden />
-          {s.label}
-        </span>
-      </div>
-      <div className="text-lg font-semibold tabular-nums mt-1">{check.value}</div>
-      <p className="text-sm text-slate-600 mt-1 leading-relaxed">{check.detail}</p>
-    </article>
   );
 }
 

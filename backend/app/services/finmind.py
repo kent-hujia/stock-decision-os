@@ -71,6 +71,22 @@ class FinMindService:
     def institutional(self, ticker: str, days: int = 60) -> List[Dict[str, Any]]:
         return self._get("TaiwanStockInstitutionalInvestorsBuySell", ticker, self._since(days), ttl=30 * 60)
 
+    def margin(self, ticker: str, days: int = 120) -> List[Dict[str, Any]]:
+        """Margin purchase / short sale balances, in lots (張)."""
+        return self._get("TaiwanStockMarginPurchaseShortSale", ticker, self._since(days), ttl=30 * 60)
+
+    def short_balances(self, ticker: str, days: int = 120) -> List[Dict[str, Any]]:
+        """Margin short and securities-lending (借券賣出) balances, in shares."""
+        return self._get("TaiwanDailyShortSaleBalances", ticker, self._since(days), ttl=30 * 60)
+
+    def shareholding(self, ticker: str, days: int = 120) -> List[Dict[str, Any]]:
+        """Foreign investor shareholding ratio."""
+        return self._get("TaiwanStockShareholding", ticker, self._since(days), ttl=30 * 60)
+
+    def day_trading(self, ticker: str, days: int = 120) -> List[Dict[str, Any]]:
+        """Day-trade volume, in shares."""
+        return self._get("TaiwanStockDayTrading", ticker, self._since(days), ttl=30 * 60)
+
     def month_revenue(self, ticker: str, years: int = 4) -> List[Dict[str, Any]]:
         return self._get("TaiwanStockMonthRevenue", ticker, self._since(365 * years), ttl=6 * 3600)
 

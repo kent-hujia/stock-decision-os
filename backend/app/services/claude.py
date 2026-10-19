@@ -1,6 +1,6 @@
 """Shared Claude call with structured output and user-facing (Traditional Chinese) errors."""
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import anthropic
 from pydantic import BaseModel
@@ -25,18 +25,28 @@ def require_key() -> None:
         raise ClaudeError("後端沒有設定 ANTHROPIC_API_KEY。")
 
 
-def parse(prompt: str, output_format: Type[T], effort: str = "medium") -> T:
+# Models that accept the server-side refusal fallback; Haiku has none.
+FALLBACK_MODELS = ("claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5", "claude-fable-5")
+
+
+def parse(prompt: Union[str, List[Dict[str, Any]]], output_format: Type[T], effort: str = "medium",
+          model: Optional[str] = None) -> T:
+    """`prompt` is the user message: plain text, or content blocks (e.g. a PDF document plus text)."""
     require_key()
+    model = model or settings.CLAUDE_MODEL
+    extra = {}
+    if model.startswith(FALLBACK_MODELS):
+        # Retry on another model automatically if a safety classifier declines.
+        extra = {"extra_headers": {"anthropic-beta": "server-side-fallback-2026-07-01"},
+                 "extra_body": {"fallbacks": "default"}}
     try:
         response = client.messages.parse(
-            model=settings.CLAUDE_MODEL,
+            model=model,
             max_tokens=16000,
             output_config={"effort": effort},
             messages=[{"role": "user", "content": prompt}],
             output_format=output_format,
-            # Retry on another model automatically if a safety classifier declines.
-            extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
-            extra_body={"fallbacks": "default"},
+            **extra,
         )
     except anthropic.AuthenticationError as e:
         raise ClaudeError("ANTHROPIC_API_KEY 無效或沒有設定。") from e

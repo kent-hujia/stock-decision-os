@@ -5,7 +5,7 @@ import Nav from '@/components/Nav'
 
 export const metadata: Metadata = {
   title: 'Stock Decision OS',
-  description: '台股個股總覽、營收品質分析與投資決策紀錄，資料來自 FinMind 公開資料。',
+  description: '台股波段練習：籌碼與技術檢查、模擬交易與檢討、營收品質分析，資料來自 FinMind 公開資料。',
 }
 
 export default function RootLayout({

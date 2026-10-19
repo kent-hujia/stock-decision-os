@@ -85,6 +85,32 @@ def institutional_series(ticker: str) -> List[Dict[str, Any]]:
     return out
 
 
+def chip_series(ticker: str) -> List[Dict[str, Any]]:
+    """Daily margin, short, securities-lending, foreign-holding and day-trade figures, oldest first.
+
+    Balances are in lots (張); ratios are percentages. A date only appears once
+    its margin data exists, and any other field FinMind lacks for it stays None.
+    """
+    margin = {r["date"]: r for r in finmind_service.margin(ticker)}
+    sbl = {r["date"]: r["SBLShortSalesCurrentDayBalance"] for r in finmind_service.short_balances(ticker)}
+    foreign = {r["date"]: r["ForeignInvestmentSharesRatio"] for r in finmind_service.shareholding(ticker)}
+    day_trade = {r["date"]: r["Volume"] for r in finmind_service.day_trading(ticker)}
+    volume = {r["date"]: r["Trading_Volume"] for r in finmind_service.prices(ticker)}
+    out = []
+    for d in sorted(margin):
+        m = margin[d]
+        dt, vol = day_trade.get(d), volume.get(d)
+        out.append({
+            "date": d,
+            "margin_balance": m["MarginPurchaseTodayBalance"],
+            "short_balance": m["ShortSaleTodayBalance"],
+            "sbl_balance": None if d not in sbl else round(sbl[d] / 1000),
+            "foreign_ratio": foreign.get(d),
+            "day_trade_ratio": None if dt is None or not vol else round(dt / vol * 100, 1),
+        })
+    return out
+
+
 def monthly_revenue(ticker: str) -> List[Dict[str, Any]]:
     """Monthly revenue keyed by the month it belongs to (not FinMind's publish date)."""
     by_month = {(r["revenue_year"], r["revenue_month"]): r["revenue"]
