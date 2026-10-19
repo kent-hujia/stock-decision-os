@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import {
   api, ApiError, jsonBody, type PaperOverview, type Swing, type TradeDetail,
@@ -82,6 +82,7 @@ export default function TradeDetailPage() {
 }
 
 function PositionCard({ t, act }: { t: TradeDetail; act: Act }) {
+  const router = useRouter();
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [stop, setStop] = useState(String(t.stop_price));
@@ -99,12 +100,24 @@ function PositionCard({ t, act }: { t: TradeDetail; act: Act }) {
     if (!err) setEditing(false);
   };
 
+  const remove = async () => {
+    if (!confirm('刪除這筆沒有成交的委託與它的紀錄？')) return;
+    try {
+      await api(`/paper/trades/${t.id}`, { method: 'DELETE' });
+      router.push('/trades');
+    } catch (e) {
+      setError(errMsg(e, '刪除失敗'));
+    }
+  };
   const active = t.status === 'planned' || t.status === 'open';
   return (
-    <Card title="部位" action={active && !editing && (
+    <Card title="部位" action={t.status === 'cancelled' ? (
+      <button onClick={remove} className={SECONDARY_BTN}>刪除</button>
+    ) : active && !editing && (
       <div className="flex flex-wrap gap-2">
         <button onClick={() => { setStop(String(t.stop_price)); setTarget(String(t.target_price)); setNote(''); setEditing(true); }} className={SECONDARY_BTN}>調整停損／目標</button>
         {t.status === 'planned' && <button onClick={() => run('/cancel', { method: 'POST' }, '確定取消這筆委託？')} className={SECONDARY_BTN}>取消委託</button>}
+        {t.status === 'planned' && <button onClick={remove} className={SECONDARY_BTN}>刪除</button>}
         {t.status === 'open' && !t.exit_requested_date && (
           <button onClick={() => run('/exit', { method: 'POST' }, '下一個交易日開盤以市價賣出，確定？')} className={SECONDARY_BTN}>開盤市價出場</button>
         )}

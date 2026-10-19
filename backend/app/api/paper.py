@@ -220,6 +220,17 @@ def cancel_trade(trade_id: int, db: Session = Depends(get_db)):
     return _detail(t)
 
 
+@router.delete("/trades/{trade_id}")
+def delete_trade(trade_id: int, db: Session = Depends(get_db)):
+    """Only orders that never filled can be deleted, so the track record can't be edited."""
+    t = _trade_or_404(db, trade_id)
+    if t.status not in ("planned", "cancelled"):
+        raise HTTPException(status_code=409, detail="已成交的交易不能刪除，成績紀錄要完整保留。")
+    db.delete(t)
+    db.commit()
+    return {"deleted": True}
+
+
 @router.post("/trades/{trade_id}/exit")
 def exit_trade(trade_id: int, db: Session = Depends(get_db)):
     t = _trade_or_404(db, trade_id)
