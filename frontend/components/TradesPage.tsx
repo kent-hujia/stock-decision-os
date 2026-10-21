@@ -181,7 +181,7 @@ function NotifyCard() {
       action={s.configured && <button onClick={test} className="inline-flex items-center gap-1.5 text-sm border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50"><Mail className="w-4 h-4" aria-hidden />寄測試信</button>}>
       <div className="text-sm text-slate-600 space-y-1">
         {s.configured ? <p>寄到 {s.to}。</p> : <p className="text-amber-700">還沒設定：需要在後端設定 GMAIL_USER 與 GMAIL_APP_PASSWORD。</p>}
-        {last && <p>上次檢查：{last.run_date}（{last.status === 'done' ? `${last.detail?.events ?? 0} 則更新${last.detail?.emailed ? '，已寄信' : ''}` : `失敗：${last.detail?.error ?? ''}`}）・{dateTime(last.created_at)}</p>}
+        {last && <p>上次檢查：{last.run_date}（{last.status === 'done' ? `${last.detail?.events ?? 0} 則更新${last.detail?.emailed ? '，已寄信' : last.detail?.email_skipped ? '，未寄信（沒有設定 Gmail）' : ''}` : `失敗：${last.detail?.error ?? ''}`}）・{dateTime(last.created_at)}</p>}
         {msg && <p className="text-indigo-700">{msg}</p>}
       </div>
     </Card>

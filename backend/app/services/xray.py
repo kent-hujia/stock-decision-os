@@ -6,7 +6,10 @@ against the company's filings. Thresholds are deliberately simple and visible.
 from statistics import mean
 from typing import Any, Dict, List, Optional
 
+from app.services.finmind import finmind_service
 from app.services.stock_data import monthly_revenue, pct_change, quarterly_financials, revenue_summary
+
+XRAY_DATASETS = ("month_revenue", "income_statement", "cash_flow", "balance_sheet")
 
 PENALTY = {"bad": 20, "warn": 8, "good": 0, "na": 0}
 
@@ -157,6 +160,7 @@ def _check_balance_item(quarters, key: str, cid: str, title: str, label: str, wh
 
 
 def build_xray(ticker: str) -> Dict[str, Any]:
+    finmind_service.warm(ticker, *XRAY_DATASETS)
     months = monthly_revenue(ticker)
     quarters = quarterly_financials(ticker)
     checks = [

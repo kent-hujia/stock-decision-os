@@ -8,7 +8,10 @@ from statistics import mean
 from typing import Any, Dict, List, Optional
 
 from app.services.stock_data import chip_series, institutional_series, pct_change, price_series
-from app.services.xray import _check, _fmt_pct, _na, build_xray
+from app.services.finmind import finmind_service
+from app.services.xray import XRAY_DATASETS, _check, _fmt_pct, _na, build_xray
+
+SWING_DATASETS = ("prices", "institutional", "margin", "short_balances", "shareholding", "day_trading")
 
 
 def tick_size(price: float) -> float:
@@ -236,6 +239,7 @@ def defense_levels(prices: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 
 
 def build_swing(ticker: str) -> Dict[str, Any]:
+    finmind_service.warm(ticker, *SWING_DATASETS, *XRAY_DATASETS)
     prices = price_series(ticker)
     flows = institutional_series(ticker)
     chips = chip_series(ticker)

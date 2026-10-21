@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.database import get_db
 from app.models.schemas import EarningsCall
 from app.services import ai_report, claude, earnings_call, swing_reading
-from app.services.finmind import FinMindError
+from app.services.finmind import FinMindError, finmind_service
 from app.services.stock_data import (
     TICKER_RE, find_stock, institutional_series, monthly_revenue, price_series,
     revenue_summary, search_stocks,
@@ -40,6 +40,7 @@ def search(q: str = Query(..., min_length=1, max_length=20)):
 def overview(ticker: str):
     stock = _stock_or_404(ticker)
     sid = stock["stock_id"]
+    finmind_service.warm(sid, "prices", "institutional", "month_revenue")
     try:
         prices = price_series(sid)
         flows = institutional_series(sid)

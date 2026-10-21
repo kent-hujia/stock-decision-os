@@ -97,7 +97,9 @@ def daily_check(db) -> Dict[str, Any]:
         t = db.get(PaperTrade, e.trade_id)
         lines.append(f"・{t.stock_name} {t.ticker}（{e.bar_date}）：{EVENT_TEXT[e.event_type](e)}")
     summary = {"events": len(new), "emailed": False}
-    if lines:
+    if lines and not configured():
+        summary["email_skipped"] = "沒有設定 Gmail，更新只記錄在網站上。"
+    elif lines:
         acc = paper.account_summary(db)
         unreviewed = paper.stats(db)["unreviewed"]
         body = "\n".join([

@@ -1,5 +1,7 @@
+import json
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -17,44 +19,75 @@ class FinMindService:
 
     Each dataset+stock pair is fetched at most once per TTL, which keeps us well
     under FinMind's hourly quota (300 requests without a token, 600 with a free one).
+    Transient FinMind failures are retried; if they persist and an older copy is
+    cached, that copy is served (the pages show each dataset's as-of date).
     """
 
     BASE_URL = "https://api.finmindtrade.com/api/v4/data"
+    RETRY_DELAYS = (1, 3)  # seconds before the 2nd and 3rd attempt
 
     def __init__(self):
         self.api_key = settings.FINMIND_API_KEY
         self._cache: Dict[tuple, tuple] = {}
         self._lock = threading.Lock()
+        self._key_locks: Dict[tuple, threading.Lock] = {}
+
+    def _fetch(self, params: Dict[str, str]) -> List[Dict[str, Any]]:
+        headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+        error: Optional[FinMindError] = None
+        for delay in (0, *self.RETRY_DELAYS):
+            time.sleep(delay)
+            try:
+                response = requests.get(self.BASE_URL, params=params, headers=headers, timeout=30)
+                body = json.loads(response.text, strict=False)
+            except (requests.RequestException, ValueError) as e:
+                error = FinMindError(f"無法連線到 FinMind：{e}")
+                continue
+            if response.status_code == 402 or body.get("status") == 402:
+                raise FinMindError("FinMind 本小時的查詢次數已用完，請稍後再試，或在後端設定 FINMIND_API_KEY 提高上限。")
+            if response.status_code == 200 and body.get("status") == 200:
+                return body.get("data", [])
+            error = FinMindError(f"FinMind 回傳錯誤：{body.get('msg', response.status_code)}")
+            if "level" in str(body.get("msg", "")).lower():
+                break  # a paid-tier dataset won't succeed on retry
+        raise error
 
     def _get(self, dataset: str, data_id: Optional[str] = None,
              start_date: Optional[str] = None, ttl: int = 3600) -> List[Dict[str, Any]]:
         key = (dataset, data_id, start_date)
         with self._lock:
-            hit = self._cache.get(key)
+            key_lock = self._key_locks.setdefault(key, threading.Lock())
+        with key_lock:  # parallel callers of the same dataset share one request
+            with self._lock:
+                hit = self._cache.get(key)
             if hit and time.time() - hit[0] < ttl:
                 return hit[1]
+            params = {"dataset": dataset}
+            if data_id:
+                params["data_id"] = data_id
+            if start_date:
+                params["start_date"] = start_date
+            try:
+                data = self._fetch(params)
+            except FinMindError as e:
+                if hit:
+                    print(f"FinMind {dataset} {data_id} failed ({e}); serving cache from {time.ctime(hit[0])}")
+                    return hit[1]
+                raise
+            with self._lock:
+                self._cache[key] = (time.time(), data)
+            return data
 
-        params = {"dataset": dataset}
-        if data_id:
-            params["data_id"] = data_id
-        if start_date:
-            params["start_date"] = start_date
-        headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        try:
-            response = requests.get(self.BASE_URL, params=params, headers=headers, timeout=30)
-            body = response.json()
-        except (requests.RequestException, ValueError) as e:
-            raise FinMindError(f"無法連線到 FinMind：{e}") from e
-
-        if response.status_code == 402 or body.get("status") == 402:
-            raise FinMindError("FinMind 本小時的查詢次數已用完，請稍後再試，或在後端設定 FINMIND_API_KEY 提高上限。")
-        if response.status_code != 200 or body.get("status") != 200:
-            raise FinMindError(f"FinMind 回傳錯誤：{body.get('msg', response.status_code)}")
-
-        data = body.get("data", [])
-        with self._lock:
-            self._cache[key] = (time.time(), data)
-        return data
+    def warm(self, ticker: str, *names: str) -> None:
+        """Fetch several datasets for one stock in parallel so the sequential code that
+        follows hits the cache. Failures are ignored here; the real call reports them."""
+        def call(name):
+            try:
+                getattr(self, name)(ticker)
+            except FinMindError:
+                pass
+        with ThreadPoolExecutor(max_workers=len(names) or 1) as pool:
+            list(pool.map(call, names))
 
     @staticmethod
     def _since(days: int) -> str:
